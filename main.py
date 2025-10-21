@@ -33,7 +33,7 @@ OPENAI_BASE_URL = os.getenv("OPENAI_BASE_URL", "https://aipipe.org/openai/v1")
 
 # Validate required env vars on startup
 if not VALID_SECRET or VALID_SECRET == "default-secret":
-    logger.warning("⚠️  VALID_SECRET not configured - using default (insecure)")
+    logger.warning("VALID_SECRET not configured - using default (insecure)")
 if not GITHUB_TOKEN:
     raise ValueError("GITHUB_TOKEN environment variable is required")
 if not OPENAI_API_KEY:
@@ -290,7 +290,7 @@ async def create_github_repo(email: str, task: str, brief: str, app_code: str, t
 
         logger.info(f"Creating GitHub repo: {repo_name}")
 
-        # ✅ Critical fix: disable auto-init to avoid default README
+
         repo = user.create_repo(
             name=repo_name,
             description=f"Task: {task_id or task} | {brief[:100]}",
@@ -299,12 +299,11 @@ async def create_github_repo(email: str, task: str, brief: str, app_code: str, t
         )
         logger.info(f"✓ Repository created: {repo.html_url}")
 
-        # ✅ Wait for repo to be ready
         await asyncio.sleep(1.5)
 
         branch = "main"
 
-        # ✅ Create index.html first
+
         logger.info("Adding index.html...")
         repo.create_file(
             path="index.html",
@@ -314,7 +313,7 @@ async def create_github_repo(email: str, task: str, brief: str, app_code: str, t
         )
         logger.info("✓ index.html added")
 
-        # ✅ Create README.md
+
         readme_content = f"""# {task}
 
 ## Task Summary
@@ -335,7 +334,7 @@ https://{user.login}.github.io/{repo_name}/
         )
         logger.info("✓ Added README.md")
 
-        # ✅ Create LICENSE
+
         license_content = f"""MIT License
 
 Copyright (c) {datetime.now().year} {email}
@@ -351,7 +350,7 @@ of this software and associated documentation files (the "Software")...
         )
         logger.info("✓ Added LICENSE")
 
-        # ✅ Create .gitignore
+  
         gitignore_content = """# Environment variables
 .env
 .env.local
@@ -750,4 +749,5 @@ if __name__ == "__main__":
     import uvicorn
     port = int(os.getenv("PORT", 3000))
     logger.info(f"Starting server on port {port}")
+
     uvicorn.run(app, host="0.0.0.0", port=port)
