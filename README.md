@@ -1,3 +1,15 @@
+<<<<<<< HEAD
+---
+title: Ai Project Generator
+emoji: 🏃
+colorFrom: red
+colorTo: pink
+sdk: docker
+pinned: false
+---
+
+Check out the configuration reference at https://huggingface.co/docs/hub/spaces-config-reference
+=======
 # AI Project Generator
 
 A FastAPI-based AI application that generates single-page web applications from task briefs.
@@ -183,3 +195,4 @@ Contributions, issues, and feature requests are welcome!
 ---
 
 **Made with ❤️ by [Prathit Narayan](https://github.com/prathitnarayan)**
+>>>>>>> 6628accab7a9d790d05eca8c0d3c84b601c652a7
