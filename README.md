@@ -63,23 +63,6 @@ This illustrates the Round 1 → Round 2 → GitHub Pages flow.
 
 ##  API Endpoints
 
-### Health Check
-
-```http
-GET https://huggingface.co/spaces/prathitnarayan/ai-project-generator/health
-```
-
-**Response:**
-
-```json
-{
-  "status": "OK",
-  "timestamp": "2025-10-21T15:00:00.000Z",
-  "github": "✓",
-  "llm": "✓"
-}
-```
-
 ### Generate/Update App
 
 ```http
@@ -172,6 +155,7 @@ The server also POSTs metadata (repo URL, pages URL, commit SHA) to your `evalua
 - Attachments are fetched via `fetch()` and included client-side.
 - Secret is verified with timing-safe comparison for security.
 - The API supports **Round 1** (create) and **Round 2** (enhance/update).
+
 
 
 
