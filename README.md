@@ -5,7 +5,7 @@ A FastAPI-based AI application that generates single-page web applications from 
 
 The app supports **Round 1** (initial app creation) and **Round 2** (enhancements/refactoring), automatically pushing code to GitHub and updating GitHub Pages.
 
-## 🚀 Live Deployment
+## Live Deployment
 
 The app is deployed on Hugging Face Spaces:
 
@@ -13,7 +13,7 @@ The app is deployed on Hugging Face Spaces:
 
 You don't need to run it locally — just send API requests to the above URL.
 
-## 📦 GitHub Repository
+## GitHub Repository
 
 Generated apps are pushed to GitHub. Example repo for this project:
 
@@ -23,7 +23,7 @@ GitHub Pages are automatically enabled, so your generated app is live at:
 
 **https://prathitnarayan.github.io/\<repo_name\>/**
 
-## 🔄 Workflow Diagram
+## Workflow Diagram
 
 ```
           ┌──────────────┐
@@ -61,7 +61,7 @@ GitHub Pages are automatically enabled, so your generated app is live at:
 
 This illustrates the Round 1 → Round 2 → GitHub Pages flow.
 
-## 📡 API Endpoints
+##  API Endpoints
 
 ### Health Check
 
@@ -173,16 +173,5 @@ The server also POSTs metadata (repo URL, pages URL, commit SHA) to your `evalua
 - Secret is verified with timing-safe comparison for security.
 - The API supports **Round 1** (create) and **Round 2** (enhance/update).
 
-## 📄 License
 
-MIT License
-
-## 🤝 Contributing
-
-Contributions, issues, and feature requests are welcome!
-
----
-
-**Made with ❤️ by [Prathit Narayan](https://github.com/prathitnarayan)**
->>>>>>> 6628accab7a9d790d05eca8c0d3c84b601c652a7
 
