@@ -120,7 +120,7 @@ curl -X POST "https://huggingface.co/spaces/prathitnarayan/ai-project-generator/
 
 ```
 
-## 🔧 How to Run Round 2 Workflow
+## How to Run Round 2 Workflow
 
 ### 1. Ensure Round 1 App Exists
 
@@ -149,13 +149,14 @@ Your updated app is live at:
 
 The server also POSTs metadata (repo URL, pages URL, commit SHA) to your `evaluation_url`.
 
-## 📝 Notes
+## Notes
 
 - All app code is generated in `index.html` with inline CSS/JS, ready to run.
 - GitHub Pages is automatically enabled for each generated repo.
 - Attachments are fetched via `fetch()` and included client-side.
 - Secret is verified with timing-safe comparison for security.
 - The API supports **Round 1** (create) and **Round 2** (enhance/update).
+
 
 
 
