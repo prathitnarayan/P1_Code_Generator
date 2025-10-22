@@ -100,23 +100,9 @@ Content-Type: application/json
 #### Example curl Request
 
 ```bash
-curl -X POST "https://prathitnarayan-ai-project-generator.hf.space/api-endpoint" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "secret": "GreenApple",
-    "email": "25ds2000019@ds.study.iitm.ac.in",
-    "task": "weather-dashboard-app",
-    "brief": "Add 7-day forecast and fix responsiveness issues",
-    "nonce": "unique_nonce_002",
-    "round": 2,
-    "evaluation_url": "https://your-evaluation-endpoint.com",
-    "checks": [
-      { "js": "document.querySelector(\"#seven-day-forecast\")" }
-    ],
-    "attachments": [
-      { "name": "forecast-data", "url": "https://example.com/forecast.json" }
-    ]
-  }'
+curl -X POST "https://prathitnarayan-ai-project-generator.hf.space/api-endpoint" ^
+  -H "Content-Type: application/json" ^
+  -d "{\"secret\": \"GreenApple\", \"email\": \"25ds2000019@ds.study.iitm.ac.in\", \"task\": \"weather-dashboard-app\", \"brief\": \"Generate a responsive weather dashboard app with city search, temperature, humidity, and weather icons.\", \"nonce\": \"unique_nonce_001\", \"round\": 1, \"evaluation_url\": \"https://webhook.site/your-real-endpoint-id\"}"
 
 ```
 
@@ -156,6 +142,7 @@ The server also POSTs metadata (repo URL, pages URL, commit SHA) to your `evalua
 - Attachments are fetched via `fetch()` and included client-side.
 - Secret is verified with timing-safe comparison for security.
 - The API supports **Round 1** (create) and **Round 2** (enhance/update).
+
 
 
 
