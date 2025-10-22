@@ -103,8 +103,8 @@ Content-Type: application/json
 curl -X POST "https://huggingface.co/spaces/prathitnarayan/ai-project-generator/api-endpoint" \
   -H "Content-Type: application/json" \
   -d '{
-    "secret": "your-secret",
-    "email": "you@example.com",
+    "secret": "GreenApple",
+    "email": "25ds2000019@ds.study.iitm.ac.in",
     "task": "weather-dashboard-app",
     "brief": "Add 7-day forecast and fix responsiveness issues",
     "nonce": "unique_nonce_002",
@@ -117,6 +117,7 @@ curl -X POST "https://huggingface.co/spaces/prathitnarayan/ai-project-generator/
       { "name": "forecast-data", "url": "https://example.com/forecast.json" }
     ]
   }'
+
 ```
 
 ## 🔧 How to Run Round 2 Workflow
@@ -155,6 +156,7 @@ The server also POSTs metadata (repo URL, pages URL, commit SHA) to your `evalua
 - Attachments are fetched via `fetch()` and included client-side.
 - Secret is verified with timing-safe comparison for security.
 - The API supports **Round 1** (create) and **Round 2** (enhance/update).
+
 
 
 
