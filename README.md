@@ -66,7 +66,7 @@ This illustrates the Round 1 → Round 2 → GitHub Pages flow.
 ### Generate/Update App
 
 ```http
-POST https://huggingface.co/spaces/prathitnarayan/ai-project-generator/api-endpoint
+POST https://prathitnarayan-ai-project-generator.hf.space/api-endpoint
 Content-Type: application/json
 ```
 
@@ -100,7 +100,7 @@ Content-Type: application/json
 #### Example curl Request
 
 ```bash
-curl -X POST "https://huggingface.co/spaces/prathitnarayan/ai-project-generator/api-endpoint" \
+curl -X POST "https://prathitnarayan-ai-project-generator.hf.space/api-endpoint" \
   -H "Content-Type: application/json" \
   -d '{
     "secret": "GreenApple",
@@ -156,6 +156,7 @@ The server also POSTs metadata (repo URL, pages URL, commit SHA) to your `evalua
 - Attachments are fetched via `fetch()` and included client-side.
 - Secret is verified with timing-safe comparison for security.
 - The API supports **Round 1** (create) and **Round 2** (enhance/update).
+
 
 
 
