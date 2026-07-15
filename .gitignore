@@ -1,5 +1,19 @@
-VALID_SECRET=GreenApple
-GITHUB_TOKEN=*Your Key*
-OPENAI_API_KEY=*Your Key*
+# Secrets / environment
+.env
+.env.*
+!.env.example
 
-OPENAI_BASE_URL=https://aipipe.org/openai/v1
+# RAG on-disk store (regenerated at runtime)
+rag_store/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

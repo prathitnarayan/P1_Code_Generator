@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Forge — AI app generator</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet" />
+    <style>
+        :root {
+            --ink: #14151c;
+            --panel: #1c1e29;
+            --inset: #232634;
+            --line: #2c2f3f;
+            --text: #e7e8f0;
+            --muted: #8b8fa6;
+            --amber: #f5a623;
+            --amber-deep: #c77f14;
+            --danger: #ff6b6b;
+            --r: 14px;
+            --display: "Space Grotesk", system-ui, sans-serif;
+            --body: "Inter", system-ui, sans-serif;
+            --mono: "JetBrains Mono", ui-monospace, monospace;
+        }
+
+        * {
+            box-sizing: border-box
+        }
+
+        html,
+        body {
+            height: 100%
+        }
+
+        body {
+            margin: 0;
+            background:
+                radial-gradient(1200px 600px at 85% -10%, rgba(245, 166, 35, .10), transparent 60%),
+                var(--ink);
+            color: var(--text);
+            font-family: var(--body);
+            font-size: 15px;
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        a {
+            color: var(--amber)
+        }
+
+        header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            padding: 16px 24px;
+            border-bottom: 1px solid var(--line);
+        }
+
+        .brand {
+            display: flex;
+            align-items: baseline;
+            gap: 12px;
+            min-width: 0
+        }
+
+        .mark {
+            font-family: var(--display);
+            font-weight: 700;
+            font-size: 22px;
+            letter-spacing: .14em
+        }
+
+        .mark .spark {
+            color: var(--amber)
+        }
+
+        .tag {
+            color: var(--muted);
+            font-size: 13px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis
+        }
+
+        .live {
+            font-family: var(--mono);
+            font-size: 12px;
+            color: var(--muted)
+        }
+
+        .live a {
+            text-decoration: none
+        }
+
+        main {
+            display: grid;
+            grid-template-columns: 250px 1fr;
+            gap: 20px;
+            padding: 20px 24px 28px;
+            max-width: 1500px;
+            margin: 0 auto;
+            height: calc(100vh - 65px);
+        }
+
+        .panel {
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: var(--r);
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+        }
+
+        .panel-head {
+            padding: 14px 18px;
+            border-bottom: 1px solid var(--line);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+        .panel-head h2 {
+            margin: 0;
+            font-family: var(--display);
+            font-weight: 600;
+            font-size: 13px;
+            letter-spacing: .16em;
+            color: var(--muted);
+            text-transform: uppercase
+        }
+
+        .console {
+            overflow: auto;
+            padding: 18px
+        }
+
+        label {
+            display: block;
+            font-size: 12px;
+            letter-spacing: .06em;
+            color: var(--muted);
+            margin: 0 0 6px;
+            text-transform: uppercase
+        }
+
+        input[type=text],
+        input[type=password],
+        textarea {
+            width: 100%;
+            background: var(--inset);
+            border: 1px solid var(--line);
+            color: var(--text);
+            border-radius: 10px;
+            padding: 11px 13px;
+            font-family: var(--body);
+            font-size: 14px;
+            resize: vertical;
+        }
+
+        textarea {
+            min-height: 120px
+        }
+
+        input:focus,
+        textarea:focus {
+            outline: none;
+            border-color: var(--amber);
+            box-shadow: 0 0 0 3px rgba(245, 166, 35, .16)
+        }
+
+        .field {
+            margin-bottom: 16px
+        }
+
+        .segmented {
+            display: flex;
+            background: var(--inset);
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            padding: 3px
+        }
+
+        .segmented button {
+            flex: 1;
+            background: transparent;
+            border: 0;
+            color: var(--muted);
+            font-family: var(--body);
+            font-weight: 500;
+            font-size: 13px;
+            padding: 9px;
+            border-radius: 7px;
+            cursor: pointer;
+            transition: .15s;
+        }
+
+        .segmented button[aria-pressed=true] {
+            background: var(--amber);
+            color: #20160a;
+            font-weight: 600
+        }
+
+        .seg-hint {
+            font-size: 12px;
+            color: var(--muted);
+            margin-top: 6px
+        }
+
+        details {
+            border-top: 1px solid var(--line);
+            margin-top: 6px;
+            padding-top: 12px
+        }
+
+        summary {
+            cursor: pointer;
+            font-size: 12px;
+            letter-spacing: .06em;
+            color: var(--muted);
+            text-transform: uppercase;
+            list-style: none
+        }
+
+        summary::-webkit-details-marker {
+            display: none
+        }
+
+        summary::before {
+            content: "▸ ";
+            color: var(--amber)
+        }
+
+        details[open] summary::before {
+            content: "▾ "
+        }
+
+        .checkline {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            margin-top: 12px;
+            color: var(--muted);
+            font-size: 13px;
+            text-transform: none;
+            letter-spacing: 0
+        }
+
+        .checkline input {
+            width: auto
+        }
+
+        .forge {
+            margin-top: 18px;
+            width: 100%;
+            border: 0;
+            border-radius: 11px;
+            cursor: pointer;
+            background: linear-gradient(180deg, var(--amber), var(--amber-deep));
+            color: #20160a;
+            font-family: var(--display);
+            font-weight: 600;
+            font-size: 15px;
+            letter-spacing: .04em;
+            padding: 14px;
+            transition: transform .08s ease, filter .15s ease;
+        }
+
+        .forge:hover {
+            filter: brightness(1.06)
+        }
+
+        .forge:active {
+            transform: translateY(1px)
+        }
+
+        .forge:disabled {
+            filter: grayscale(.5) brightness(.7);
+            cursor: progress
+        }
+
+        .forge.working {
+            position: relative;
+            overflow: hidden
+        }
+
+        .forge.working::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .35), transparent);
+            transform: translateX(-100%);
+            animation: sweep 1.1s infinite;
+        }
+
+        @keyframes sweep {
+            to {
+                transform: translateX(100%)
+            }
+        }
+
+        .note {
+            margin-top: 12px;
+            font-size: 13px;
+            color: var(--muted);
+            min-height: 18px
+        }
+
+        .note.err {
+            color: var(--danger)
+        }
+
+        .note a {
+            margin-left: 4px
+        }
+
+        .tabs {
+            display: flex;
+            gap: 4px
+        }
+
+        .tab {
+            background: transparent;
+            border: 1px solid transparent;
+            color: var(--muted);
+            font-family: var(--mono);
+            font-size: 12px;
+            padding: 6px 12px;
+            border-radius: 8px;
+            cursor: pointer
+        }
+
+        .tab[aria-selected=true] {
+            color: var(--text);
+            background: var(--inset);
+            border-color: var(--line)
+        }
+
+        .preview-body {
+            flex: 1;
+            min-height: 0;
+            position: relative;
+            background: #0f1017;
+            border-radius: 0 0 var(--r) var(--r);
+            overflow: hidden
+        }
+
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: 0;
+            background: #fff
+        }
+
+        pre.code {
+            margin: 0;
+            height: 100%;
+            overflow: auto;
+            padding: 16px;
+            font-family: var(--mono);
+            font-size: 12.5px;
+            color: #cdd3e5;
+            background: #0f1017;
+            white-space: pre-wrap;
+            word-break: break-word
+        }
+
+        /* ===========================
+   IDE Fullscreen Preview Mode
+   =========================== */
+
+        .preview-mode {
+            grid-template-columns: 1fr !important;
+        }
+
+        .preview-mode #builderPanel {
+            display: none;
+        }
+
+        .preview-mode #previewPanel {
+            width: 100%;
+        }
+
+        .back-builder {
+            position: absolute;
+            top: 18px;
+            left: 18px;
+            z-index: 9999;
+
+            background: #1f2937;
+            color: white;
+            border: none;
+
+            padding: 10px 18px;
+            border-radius: 10px;
+
+            cursor: pointer;
+
+            font-family: var(--body);
+            font-size: 14px;
+
+            box-shadow: 0 10px 25px rgba(0, 0, 0, .35);
+        }
+
+        .back-builder:hover {
+            background: #374151;
+        }
+
+        .empty {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            gap: 8px;
+            color: var(--muted);
+            padding: 24px
+        }
+
+        .empty .big {
+            font-family: var(--display);
+            font-size: 19px;
+            color: #c7cbdd
+        }
+
+        .hidden {
+            display: none !important
+        }
+
+        @media (max-width:900px) {
+            main {
+                grid-template-columns: 1fr;
+                height: auto;
+                gap: 16px
+            }
+
+            .panel.preview {
+                min-height: 70vh
+            }
+
+            .live {
+                display: none
+            }
+        }
+
+        @media (prefers-reduced-motion:reduce) {
+            * {
+                transition: none !important;
+                animation: none !important
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <div class="brand">
+            <span class="mark">FORGE<span class="spark">·</span></span>
+            <span class="tag">brief in, single-page app out — pushed live to GitHub Pages</span>
+        </div>
+        <div class="live">live app · <a href="https://prathitnarayan.github.io/LLM-Pages/" target="_blank">LLM-Pages
+                ↗</a></div>
+    </header>
+
+    <main>
+        <section class="panel" id="builderPanel">
+            <div class="panel-head">
+                <h2>Console</h2>
+            </div>
+            <div class="console">
+                <div class="field">
+                    <label for="task">Task name</label>
+                    <input id="task" type="text" placeholder="weather-dashboard" value="weather-dashboard" />
+                </div>
+
+                <div class="field">
+                    <label for="brief">Brief</label>
+                    <textarea id="brief"
+                        placeholder="Describe the app to build. e.g. A responsive weather dashboard with city search, current temperature, humidity, and a 5-day forecast.">A responsive weather dashboard with city search, current temperature, humidity, and weather icons.</textarea>
+                </div>
+
+                <div class="field">
+                    <label>Round</label>
+                    <div class="segmented" role="group" aria-label="Generation round">
+                        <button type="button" id="r1" aria-pressed="true">1 · Create</button>
+                        <button type="button" id="r2" aria-pressed="false">2 · Enhance</button>
+                    </div>
+                    <div class="seg-hint" id="roundHint">Builds a fresh app from the brief.</div>
+                </div>
+
+                <details>
+                    <summary>Advanced</summary>
+                    <div class="field" style="margin-top:14px">
+                        <label for="secret">Secret</label>
+                        <input id="secret" type="password" placeholder="required to generate" autocomplete="off" />
+                    </div>
+                    <div class="field">
+                        <label for="checks">Validation checks — one JS expression per line</label>
+                        <textarea id="checks" style="min-height:80px"
+                            placeholder='document.querySelector("#search")'></textarea>
+                    </div>
+                    <label class="checkline"><input id="deploy" type="checkbox" /> Also push to GitHub Pages</label>
+                </details>
+
+                <button class="forge" id="forge">Forge app</button>
+                <div class="note" id="note" role="status" aria-live="polite"></div>
+            </div>
+        </section>
+
+        <section class="panel preview" id="previewPanel">
+            <div class="panel-head">
+                <h2>Preview</h2>
+                <div class="tabs" role="tablist">
+                    <button class="tab" id="tab-preview" role="tab" aria-selected="true">Preview</button>
+                    <button class="tab" id="tab-code" role="tab" aria-selected="false">Code</button>
+                    <button class="tab" id="tab-open" role="tab" aria-selected="false" title="Open in a new tab">Open
+                        ↗</button>
+                </div>
+            </div>
+            <div class="preview-body">
+                <button id="backBuilder" class="back-builder hidden">
+                    ← Back to Builder
+                </button>
+                <iframe id="frame" title="Generated app preview"
+                    sandbox="allow-scripts allow-forms allow-popups allow-modals"></iframe>
+                <pre class="code hidden" id="code"></pre>
+                <div class="empty" id="empty">
+                    <div class="big">Nothing forged yet</div>
+                    <div>Describe an app on the left and hit <b>Forge app</b>.<br />You'll see it rendered here before
+                        it goes live.</div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        (function () {
+            const $ = id => document.getElementById(id);
+            let round = 1, lastHtml = "";
+
+            function enterPreviewMode() {
+                document.querySelector("main").classList.add("preview-mode");
+                $("backBuilder").classList.remove("hidden");
+            }
+            function exitPreviewMode() {
+                document.querySelector("main").classList.remove("preview-mode");
+                $("backBuilder").classList.add("hidden");
+            }
+
+            function setRound(r) {
+                round = r;
+                $("r1").setAttribute("aria-pressed", r === 1);
+                $("r2").setAttribute("aria-pressed", r === 2);
+                $("roundHint").textContent = r === 1
+                    ? "Builds a fresh app from the brief."
+                    : "Enhances the current live app using your brief as the change request.";
+                $("forge").textContent = r === 1 ? "Forge app" : "Enhance app";
+            }
+            $("r1").onclick = () => setRound(1);
+            $("r2").onclick = () => setRound(2);
+
+            function selectTab(which) {
+                const p = which === "preview";
+                $("tab-preview").setAttribute("aria-selected", p);
+                $("tab-code").setAttribute("aria-selected", !p);
+                $("frame").classList.toggle("hidden", !p);
+                $("code").classList.toggle("hidden", p);
+            }
+            $("tab-preview").onclick = () => selectTab("preview");
+            $("tab-code").onclick = () => selectTab("code");
+            $("tab-open").onclick = () => {
+                if (!lastHtml)
+                    return;
+                // const url = URL.createObjectURL(new Blob([lastHtml], { type: "text/html" }));
+                // window.open(url, "_blank");
+                enterPreviewMode();
+            };
+
+            async function forge() {
+                const brief = $("brief").value.trim();
+                const task = $("task").value.trim();
+                const note = $("note");
+                note.className = "note"; note.textContent = "";
+                if (!task) { note.textContent = "Give the task a short name first."; return; }
+                if (!brief) { note.textContent = "Describe the app in the brief first."; return; }
+
+                const checks = $("checks").value.split("\n").map(s => s.trim()).filter(Boolean).map(js => ({ js }));
+                const body = { secret: $("secret").value, task, brief, round, checks, deploy: $("deploy").checked, email: "ui@local" };
+
+                const btn = $("forge");
+                btn.disabled = true; btn.classList.add("working");
+                note.textContent = round === 2 ? "Enhancing current app…" : "Forging…";
+
+                try {
+                    const res = await fetch("/generate", {
+                        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body)
+                    });
+                    if (res.status === 401) { note.className = "note err"; note.textContent = "Invalid secret — check Advanced settings."; return; }
+                    if (!res.ok) {
+                        let d; try { d = (await res.json()).detail; } catch (e) { }
+                        note.className = "note err"; note.textContent = d || ("Server error (" + res.status + ")."); return;
+                    }
+                    const data = await res.json();
+                    lastHtml = data.html || "";
+                    $("empty").classList.add("hidden");
+                    $("frame").srcdoc = lastHtml;
+                    enterPreviewMode();
+                    $("code").textContent = lastHtml;
+                    selectTab("preview");
+                    note.textContent = data.deploying ? "Done. Deploying to GitHub Pages — live shortly at" : "Done.";
+                    if (data.deploying && data.pages_url) {
+                        const a = document.createElement("a"); a.href = data.pages_url; a.target = "_blank"; a.textContent = data.pages_url;
+                        note.appendChild(a);
+                    }
+                } catch (e) {
+                    note.className = "note err"; note.textContent = "Couldn't reach the server. Is it running?";
+                } finally {
+                    btn.disabled = false; btn.classList.remove("working");
+                }
+            }
+            $("forge").onclick = forge;
+            document.addEventListener("keydown", e => { if ((e.metaKey || e.ctrlKey) && e.key === "Enter") forge(); });
+            $("backBuilder").onclick = exitPreviewMode;
+        })();
+    </script>
+</body>
+
+</html>

@@ -1,5 +1,6 @@
 from fastapi import FastAPI, HTTPException, BackgroundTasks, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, HTMLResponse
+from pathlib import Path
 from pydantic import BaseModel, Field
 from typing import Optional, List, Dict, Any
 import httpx
@@ -33,12 +34,10 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY") or os.getenv("AIPIPE_TOKEN")
 OPENAI_BASE_URL = os.getenv("OPENAI_BASE_URL", "https://aipipe.org/openai/v1")
 
 # Validate required env vars on startup
-if not VALID_SECRET or VALID_SECRET == "default-secret":
-    logger.warning("VALID_SECRET not configured - using default (insecure)")
 if not GITHUB_TOKEN:
     raise ValueError("GITHUB_TOKEN environment variable is required")
 if not OPENAI_API_KEY:
-    raise ValueError("OPENAI_API_KEY environment variable is required")
+    raise ValueError("OPENAI_API_KEY or AIPIPE_TOKEN environment variable is required")
 
 # Initialize clients
 try:
@@ -60,43 +59,18 @@ class Attachment(BaseModel):
 class Check(BaseModel):
     js: str  # JavaScript code to evaluate
 
-class Round2Brief(BaseModel):
-    brief: str
-    checks: List[Check]
-    attachments: Optional[List[Attachment]] = None
-
-class TaskTemplate(BaseModel):
-    id: str
-    brief: str
-    attachments: List[Attachment] = []
-    checks: List[Check]
-    round2: Optional[List[Round2Brief]] = None
-
 class ApiRequest(BaseModel):
     secret: str
-    email: str
     task: str
     brief: str
-    nonce: str
     round: int = Field(default=1, ge=1, le=2)
-    evaluation_url: str
     attachments: List[Attachment] = []
     checks: List[Check] = []
-    task_template: Optional[Dict[str, Any]] = None
 
 # Helper functions
 def verify_secret_timing_safe(submitted_secret: str) -> bool:
     """Verify secret with timing-safe comparison"""
     return hmac.compare_digest(submitted_secret, VALID_SECRET)
-
-def sign_payload(payload: Dict[str, Any], secret: str) -> str:
-    """Sign payload with HMAC-SHA256"""
-    payload_str = json.dumps(payload, sort_keys=True)
-    return hmac.new(
-        secret.encode(),
-        payload_str.encode(),
-        hashlib.sha256
-    ).hexdigest()
 
 async def fetch_attachment_data(url: str, max_size: int = 10_000_000) -> str:
     """Fetch attachment content with validation"""
@@ -234,7 +208,7 @@ async def generate_app_code_with_llm(
 </html>"""
         return fallback
 
-# NEW FUNCTIONS FOR SINGLE REPO DEPLOYMENT
+# FUNCTIONS FOR SINGLE REPO DEPLOYMENT
 
 async def ensure_llm_pages_repo(user) -> Any:
     """
@@ -242,7 +216,7 @@ async def ensure_llm_pages_repo(user) -> Any:
     Returns the repository object.
     """
     repo_name = "LLM-Pages"
-    
+
     try:
         # Try to get existing repo
         repo = user.get_repo(repo_name)
@@ -262,10 +236,10 @@ async def ensure_llm_pages_repo(user) -> Any:
                 has_downloads=False
             )
             logger.info(f"✓ Created repo: {repo.html_url}")
-            
+
             # Wait for repo to be ready
             await asyncio.sleep(2)
-            
+
             # Create initial README to establish main branch
             logger.info("Creating initial README...")
             repo.create_file(
@@ -275,10 +249,10 @@ async def ensure_llm_pages_repo(user) -> Any:
                 branch="main"
             )
             logger.info("✓ Initial README created")
-            
+
             # Wait a bit for branch to be established
             await asyncio.sleep(2)
-            
+
             return repo
         else:
             raise
@@ -287,14 +261,14 @@ async def ensure_llm_pages_repo(user) -> Any:
 async def enable_github_pages(repo, user_login: str, repo_name: str) -> str:
     """Enable GitHub Pages using REST API with proper error handling"""
     pages_url = f"https://{user_login}.github.io/{repo_name}/"
-    
+
     # Enable Pages using REST API (skip PyGithub check - it's unreliable)
     headers = {
         "Authorization": f"Bearer {GITHUB_TOKEN}",
         "Accept": "application/vnd.github+json",
         "X-GitHub-Api-Version": "2022-11-28"
     }
-    
+
     pages_data = {
         "source": {
             "branch": "main",
@@ -302,7 +276,7 @@ async def enable_github_pages(repo, user_login: str, repo_name: str) -> str:
         },
         "build_type": "legacy"
     }
-    
+
     try:
         logger.info(f"Enabling GitHub Pages via API...")
         response = requests.post(
@@ -311,7 +285,7 @@ async def enable_github_pages(repo, user_login: str, repo_name: str) -> str:
             json=pages_data,
             timeout=30
         )
-        
+
         if response.status_code == 201:
             logger.info(f"✓ GitHub Pages enabled successfully: {pages_url}")
             return pages_url
@@ -328,10 +302,10 @@ async def enable_github_pages(repo, user_login: str, repo_name: str) -> str:
             logger.error(f"✗ GitHub Pages API error: {response.status_code}")
             logger.error(f"   Response: {response.text}")
             raise HTTPException(
-                status_code=500, 
+                status_code=500,
                 detail=f"Failed to enable GitHub Pages: HTTP {response.status_code}"
             )
-            
+
     except requests.exceptions.RequestException as e:
         logger.error(f"✗ Network error enabling Pages: {e}")
         raise HTTPException(status_code=500, detail=f"Network error: {str(e)}")
@@ -349,14 +323,14 @@ async def check_pages_status(user_login: str, repo_name: str) -> dict:
         "Accept": "application/vnd.github+json",
         "X-GitHub-Api-Version": "2022-11-28"
     }
-    
+
     try:
         response = requests.get(
             f"https://api.github.com/repos/{user_login}/{repo_name}/pages",
             headers=headers,
             timeout=15
         )
-        
+
         if response.status_code == 200:
             data = response.json()
             logger.info(f"✓ Pages status: {data.get('status', 'unknown')}")
@@ -380,7 +354,7 @@ async def update_or_create_file(repo, path: str, content: str, message: str, bra
     try:
         # Try to get existing file
         existing_file = repo.get_contents(path, ref=branch)
-        
+
         # Update existing file
         repo.update_file(
             path=path,
@@ -390,7 +364,7 @@ async def update_or_create_file(repo, path: str, content: str, message: str, bra
             branch=branch
         )
         logger.info(f"✓ Updated {path}")
-        
+
     except GithubException as e:
         if e.status == 404:
             # File doesn't exist, create it
@@ -405,7 +379,7 @@ async def update_or_create_file(repo, path: str, content: str, message: str, bra
             raise
 
 
-async def deploy_to_llm_pages(email: str, task: str, brief: str, app_code: str, 
+async def deploy_to_llm_pages(task: str, brief: str, app_code: str,
                                task_id: str = "", round: int = 1) -> Dict[str, str]:
     """
     Deploy application to the single 'LLM-Pages' repository.
@@ -413,19 +387,19 @@ async def deploy_to_llm_pages(email: str, task: str, brief: str, app_code: str,
     """
     if not gh:
         raise HTTPException(status_code=500, detail="GitHub not configured")
-    
+
     try:
         user = gh.get_user()
-        
+
         # Ensure LLM-Pages repo exists
         repo = await ensure_llm_pages_repo(user)
         repo_name = repo.name
-        
+
         logger.info(f"Deploying to {repo.html_url}")
-        
+
         branch = "main"
         timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S UTC')
-        
+
         # 1. Update index.html (main application)
         logger.info("Updating index.html...")
         await update_or_create_file(
@@ -435,21 +409,19 @@ async def deploy_to_llm_pages(email: str, task: str, brief: str, app_code: str,
             message=f"Deploy: {task} (Round {round}) - {timestamp}",
             branch=branch
         )
-        
+
         # 2. Update README.md with deployment history
         logger.info("Updating README.md...")
         readme_content = f"""# LLM Pages
 This repository hosts automatically generated web applications. The codebase is **completely replaced** on each deployment.
 ## 🚀 Current Deployment
-**Task:** {task}  
-**Task ID:** {task_id or 'N/A'}  
-**Round:** {round}  
-**Deployed:** {timestamp}  
-**Author:** {email}
+**Task:** {task}
+**Round:** {round}
+**Deployed:** {timestamp}
 ### Description
 {brief}
 ## 🌐 Live Application
-**[View Current App](https://prathitnarayan.github.io/{repo_name}/)**
+**[View Current App](https://{user.login}.github.io/{repo_name}/)**
 ---
 ## 📝 About This Repository
 - **Purpose:** Automated deployment of LLM-generated applications
@@ -466,7 +438,7 @@ This README is updated with each deployment. Previous deployments are tracked in
 ---
 *Powered by AI Project Generator | Last updated: {timestamp}*
 """
-        
+
         await update_or_create_file(
             repo=repo,
             path="README.md",
@@ -474,7 +446,7 @@ This README is updated with each deployment. Previous deployments are tracked in
             message=f"Update README: {task} - {timestamp}",
             branch=branch
         )
-        
+
         # 3. Create/Update deployment metadata file (JSON)
         logger.info("Updating deployment metadata...")
         metadata = {
@@ -482,11 +454,10 @@ This README is updated with each deployment. Previous deployments are tracked in
             "task_id": task_id,
             "round": round,
             "brief": brief,
-            "email": email,
             "deployed_at": timestamp,
             "deployment_count": "See commit history"
         }
-        
+
         await update_or_create_file(
             repo=repo,
             path="deployment.json",
@@ -494,7 +465,7 @@ This README is updated with each deployment. Previous deployments are tracked in
             message=f"Update metadata: {task}",
             branch=branch
         )
-        
+
         # 4. Ensure .gitignore exists
         gitignore_content = """# Environment
 .env
@@ -510,7 +481,7 @@ Thumbs.db
 .secrets/
 credentials.json
 """
-        
+
         try:
             repo.get_contents(".gitignore", ref=branch)
             logger.info("✓ .gitignore exists")
@@ -523,18 +494,18 @@ credentials.json
                     message="Add .gitignore",
                     branch=branch
                 )
-        
+
         # Get latest commit SHA
         commits = list(repo.get_commits(sha=branch))
         commit_sha = commits[0].sha if commits else None
-        
-        pages_url = f"https://prathitnarayan.github.io/{repo_name}/"
-        
+
+        pages_url = f"https://{user.login}.github.io/{repo_name}/"
+
         # Ensure Pages is enabled (with retry)
         logger.info("Ensuring GitHub Pages is enabled...")
         max_enable_retries = 3
         pages_enabled = False
-        
+
         for attempt in range(max_enable_retries):
             try:
                 await enable_github_pages(repo, user.login, repo_name)
@@ -544,28 +515,28 @@ credentials.json
                 logger.warning(f"Pages enable attempt {attempt + 1} failed: {e}")
                 if attempt < max_enable_retries - 1:
                     await asyncio.sleep(2)
-        
+
         if not pages_enabled:
             logger.error("✗ Failed to enable GitHub Pages after retries")
             logger.info("Please manually enable Pages at:")
             logger.info(f"  https://github.com/{user.login}/{repo_name}/settings/pages")
-        
+
         logger.info(f"✓ Deployment complete")
         logger.info(f"  Repo: {repo.html_url}")
         logger.info(f"  Pages: {pages_url}")
         logger.info(f"  Commit: {commit_sha}")
-        
+
         return {
             "repo_url": repo.html_url,
             "pages_url": pages_url,
             "repo_name": repo_name,
             "commit_sha": commit_sha
         }
-        
+
     except GithubException as e:
         logger.error(f"GitHub API error: {e.status} - {e.data}")
         raise HTTPException(
-            status_code=500, 
+            status_code=500,
             detail=f"GitHub error: {e.data.get('message', str(e))}"
         )
     except Exception as e:
@@ -580,14 +551,14 @@ async def verify_github_pages(pages_url: str, max_retries: int = 20, initial_del
     """
     logger.info(f"Waiting {initial_delay}s for GitHub Pages build...")
     await asyncio.sleep(initial_delay)
-    
+
     delay = 5
     async with httpx.AsyncClient(timeout=15, follow_redirects=True) as client:
         for attempt in range(max_retries):
             try:
                 logger.info(f"Verifying Pages ({attempt + 1}/{max_retries}): {pages_url}")
                 response = await client.get(pages_url)
-                
+
                 if response.status_code == 200:
                     content = response.text.lower()
                     # Check it's not a GitHub 404 page
@@ -596,75 +567,32 @@ async def verify_github_pages(pages_url: str, max_retries: int = 20, initial_del
                         return True
                     else:
                         logger.info("Received 200 but appears to be 404 page, waiting...")
-                        
+
                 elif response.status_code == 404:
                     logger.info(f"Pages not ready yet (404)")
                 else:
                     logger.warning(f"Unexpected status: {response.status_code}")
-                    
+
             except httpx.TimeoutException:
                 logger.warning(f"Request timeout (attempt {attempt + 1})")
             except Exception as e:
                 logger.warning(f"Verification attempt failed: {str(e)[:100]}")
-            
+
             if attempt < max_retries - 1:
                 await asyncio.sleep(delay)
                 delay = min(delay + 2, 15)
-    
+
     logger.error(f"✗ Pages verification timed out after {max_retries} attempts")
     return False
 
 
-async def push_results_with_retry(
-    evaluation_url: str,
-    payload: Dict[str, Any],
-    secret: str,
-    max_retries: int = 8
-) -> bool:
-    """Push results with exponential backoff"""
-    signature = sign_payload(payload, secret)
-    headers = {
-        "Content-Type": "application/json",
-        "X-Webhook-Signature": signature
-    }
-
-    delay = 1
-    async with httpx.AsyncClient(timeout=30) as client:
-        for attempt in range(max_retries):
-            try:
-                logger.info(f"Posting to evaluation URL (attempt {attempt + 1}/{max_retries})")
-                response = await client.post(
-                    evaluation_url,
-                    json=payload,
-                    headers=headers
-                )
-
-                if response.status_code == 200:
-                    logger.info(f"✓ Successfully posted results")
-                    return True
-                else:
-                    logger.warning(f"Evaluation URL returned {response.status_code}")
-
-            except Exception as e:
-                logger.warning(f"Attempt {attempt + 1}/{max_retries} failed: {e}")
-
-            if attempt < max_retries - 1:
-                logger.info(f"Retrying in {delay} seconds...")
-                await asyncio.sleep(delay)
-                delay *= 2
-
-    logger.error(f"Failed after {max_retries} retries")
-    return False
-
-
 async def process_request(req: ApiRequest):
-    """Process API request - now deploys to single LLM-Pages repo"""
+    """Process API request - generates an app and deploys it to the LLM-Pages repo"""
     try:
         logger.info(f"\n{'='*70}")
         logger.info(f"ROUND {req.round} - Task: {req.task}")
-        logger.info(f"Email: {req.email}")
         logger.info(f"{'='*70}\n")
-        
+
         # Process attachments
         processed_attachments = []
         if req.attachments:
@@ -679,10 +607,10 @@ async def process_request(req: ApiRequest):
                     logger.info(f"✓ {att.name}")
                 except Exception as e:
                     logger.error(f"✗ Failed to process {att.name}: {e}")
-        
+
         # Extract check codes
         check_codes = [check.js for check in req.checks] if req.checks else []
-        
+
         # For Round 2, fetch current code from LLM-Pages repo
         current_code = None
         if req.round == 2:
@@ -695,7 +623,7 @@ async def process_request(req: ApiRequest):
                 logger.info(f"✓ Fetched current code ({len(current_code)} chars)")
             except Exception as e:
                 logger.warning(f"Could not fetch current code: {e}")
-        
+
         # Generate application code
         logger.info(f"Generating application code (Round {req.round})...")
         app_code = await generate_app_code_with_llm(
@@ -705,49 +633,25 @@ async def process_request(req: ApiRequest):
             round=req.round,
             checks=check_codes
         )
-        
+
         # Deploy to LLM-Pages repo (replaces everything)
         logger.info("Deploying to LLM-Pages repository...")
         repo_info = await deploy_to_llm_pages(
-            email=req.email,
             task=req.task,
             brief=req.brief,
             app_code=app_code,
-            task_id=req.task_template.get("id", "") if req.task_template else "",
             round=req.round
         )
-        
+
         # Verify GitHub Pages
         logger.info("Verifying GitHub Pages deployment...")
         pages_ok = await verify_github_pages(repo_info["pages_url"])
-        
+
         if not pages_ok:
             logger.warning("⚠ GitHub Pages verification timed out (may still deploy)")
-        
-        # Prepare evaluation payload
-        payload = {
-            "email": req.email,
-            "task": req.task,
-            "round": req.round,
-            "nonce": req.nonce,
-            "repo_url": repo_info["repo_url"],
-            "commit_sha": repo_info["commit_sha"],
-            "pages_url": repo_info["pages_url"]
-        }
-        
-        # Push results
-        logger.info("Posting results to evaluation URL...")
-        success = await push_results_with_retry(
-            req.evaluation_url,
-            payload,
-            VALID_SECRET
-        )
-        
-        if success:
-            logger.info(f"✓ Round {req.round} COMPLETED SUCCESSFULLY")
-        else:
-            logger.error(f"✗ Failed to reach evaluation URL")
-            
+
+        logger.info(f"✓ Round {req.round} COMPLETED - live at {repo_info['pages_url']}")
+
     except asyncio.TimeoutError:
         logger.error(f"✗ TIMEOUT - Processing exceeded time limit")
     except Exception as e:
@@ -770,20 +674,10 @@ async def health():
 
 @app.post("/api-endpoint")
 async def api_endpoint(req: ApiRequest, background_tasks: BackgroundTasks):
-    """Main API endpoint - accepts task requests and processes asynchronously"""
+    """Main API endpoint - accepts a task request and processes asynchronously"""
     try:
-        # Input validation
-        if not req.brief or len(req.brief.strip()) == 0:
-            raise HTTPException(status_code=400, detail="Brief cannot be empty")
-        if len(req.brief) > 5000:
-            raise HTTPException(status_code=400, detail="Brief too long (max 5000 chars)")
-        if not req.email or "@" not in req.email:
-            raise HTTPException(status_code=400, detail="Invalid email")
-        if not req.task or len(req.task.strip()) == 0:
-            raise HTTPException(status_code=400, detail="Task cannot be empty")
-
         # Verify secret (timing-safe)
-        logger.info(f"Verifying secret for {req.email}")
+        logger.info("Verifying secret")
         if not verify_secret_timing_safe(req.secret):
             logger.warning(f"✗ Invalid secret")
             raise HTTPException(status_code=401, detail="Invalid secret")
@@ -816,18 +710,20 @@ async def api_endpoint(req: ApiRequest, background_tasks: BackgroundTasks):
         logger.error(f"Endpoint error: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/")
+@app.get("/", response_class=HTMLResponse)
 async def root():
-    """Root endpoint"""
+    """Serve the UI"""
+    return Path("/app/index.html").read_text()
+
+@app.get("/info")
+async def info():
+    """API info"""
     return JSONResponse(
         status_code=200,
         content={
-            "name": "AI Project Generator API",
-            "version": "2.0.0",
-            "description": "Processes task templates and generates applications",
-            "status": "ready",
-            "deployment": "Single LLM-Pages repository",
-            "pages_url": "https://prathitnarayan.github.io/LLM-Pages/"
+            "name": "AppForge — AI App Generator",
+            "version": "2.2.0",
+            "status": "ready"
         }
     )
 
@@ -835,5 +731,4 @@ if __name__ == "__main__":
     import uvicorn
     port = int(os.getenv("PORT", 3000))
     logger.info(f"Starting server on port {port}")
-    logger.info(f"GitHub Pages URL: https://prathitnarayan.github.io/LLM-Pages/")
     uvicorn.run(app, host="0.0.0.0", port=port)
