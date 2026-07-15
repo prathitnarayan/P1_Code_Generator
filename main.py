@@ -713,7 +713,7 @@ async def api_endpoint(req: ApiRequest, background_tasks: BackgroundTasks):
 @app.get("/", response_class=HTMLResponse)
 async def root():
     """Serve the UI"""
-    return Path("/static/index.html").read_text()
+    return Path("/app/static/index.html").read_text(encoding="utf-8")
 
 @app.get("/info")
 async def info():
