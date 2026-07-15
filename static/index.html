@@ -99,7 +99,7 @@
 
         main {
             display: grid;
-            grid-template-columns: 250px 1fr;
+            grid-template-columns: minmax(360px, 440px) 1fr;
             gap: 20px;
             padding: 20px 24px 28px;
             max-width: 1500px;
@@ -370,47 +370,6 @@
             word-break: break-word
         }
 
-        /* ===========================
-   IDE Fullscreen Preview Mode
-   =========================== */
-
-        .preview-mode {
-            grid-template-columns: 1fr !important;
-        }
-
-        .preview-mode #builderPanel {
-            display: none;
-        }
-
-        .preview-mode #previewPanel {
-            width: 100%;
-        }
-
-        .back-builder {
-            position: absolute;
-            top: 18px;
-            left: 18px;
-            z-index: 9999;
-
-            background: #1f2937;
-            color: white;
-            border: none;
-
-            padding: 10px 18px;
-            border-radius: 10px;
-
-            cursor: pointer;
-
-            font-family: var(--body);
-            font-size: 14px;
-
-            box-shadow: 0 10px 25px rgba(0, 0, 0, .35);
-        }
-
-        .back-builder:hover {
-            background: #374151;
-        }
-
         .empty {
             position: absolute;
             inset: 0;
@@ -465,12 +424,12 @@
             <span class="mark">FORGE<span class="spark">·</span></span>
             <span class="tag">brief in, single-page app out — pushed live to GitHub Pages</span>
         </div>
-        <div class="live">live app · <a href="https://prathitnarayan.github.io/LLM-Pages/" target="_blank">LLM-Pages
+        <div class="live">live app · <a href="https://prathitnarayan.github.io/LLM-Pages/" target="_blank" rel="noopener noreferrer">LLM-Pages
                 ↗</a></div>
     </header>
 
     <main>
-        <section class="panel" id="builderPanel">
+        <section class="panel">
             <div class="panel-head">
                 <h2>Console</h2>
             </div>
@@ -506,7 +465,7 @@
                         <textarea id="checks" style="min-height:80px"
                             placeholder='document.querySelector("#search")'></textarea>
                     </div>
-                    <label class="checkline"><input id="deploy" type="checkbox" /> Also push to GitHub Pages</label>
+                    <!-- <label class="checkline"><input id="deploy" type="checkbox" /> Also push to GitHub Pages</label> -->
                 </details>
 
                 <button class="forge" id="forge">Forge app</button>
@@ -514,7 +473,7 @@
             </div>
         </section>
 
-        <section class="panel preview" id="previewPanel">
+        <section class="panel preview">
             <div class="panel-head">
                 <h2>Preview</h2>
                 <div class="tabs" role="tablist">
@@ -525,16 +484,18 @@
                 </div>
             </div>
             <div class="preview-body">
-                <button id="backBuilder" class="back-builder hidden">
-                    ← Back to Builder
-                </button>
                 <iframe id="frame" title="Generated app preview"
                     sandbox="allow-scripts allow-forms allow-popups allow-modals"></iframe>
                 <pre class="code hidden" id="code"></pre>
                 <div class="empty" id="empty">
-                    <div class="big">Nothing forged yet</div>
-                    <div>Describe an app on the left and hit <b>Forge app</b>.<br />You'll see it rendered here before
-                        it goes live.</div>
+                    <div class="big">Background generation in progress</div>
+                    <div>This backend generates applications asynchronously.
+                        Once processing completes, open the deployed GitHub Pages application from the header.
+                    </div>
+                    <div>
+                        Describe an app on the left and hit <b>Forge app</b>.<br>
+                        The generated application will be deployed automatically.
+                    </div>
                 </div>
             </div>
         </section>
@@ -543,16 +504,7 @@
     <script>
         (function () {
             const $ = id => document.getElementById(id);
-            let round = 1, lastHtml = "";
-
-            function enterPreviewMode() {
-                document.querySelector("main").classList.add("preview-mode");
-                $("backBuilder").classList.remove("hidden");
-            }
-            function exitPreviewMode() {
-                document.querySelector("main").classList.remove("preview-mode");
-                $("backBuilder").classList.add("hidden");
-            }
+            let round = 1;
 
             function setRound(r) {
                 round = r;
@@ -576,11 +528,10 @@
             $("tab-preview").onclick = () => selectTab("preview");
             $("tab-code").onclick = () => selectTab("code");
             $("tab-open").onclick = () => {
-                if (!lastHtml)
-                    return;
-                // const url = URL.createObjectURL(new Blob([lastHtml], { type: "text/html" }));
-                // window.open(url, "_blank");
-                enterPreviewMode();
+                window.open(
+                    "https://prathitnarayan.github.io/LLM-Pages/",
+                    "_blank"
+                );
             };
 
             async function forge() {
@@ -592,14 +543,25 @@
                 if (!brief) { note.textContent = "Describe the app in the brief first."; return; }
 
                 const checks = $("checks").value.split("\n").map(s => s.trim()).filter(Boolean).map(js => ({ js }));
-                const body = { secret: $("secret").value, task, brief, round, checks, deploy: $("deploy").checked, email: "ui@local" };
+                const body = {
+                    secret: $("secret").value,
+                    task,
+                    brief,
+                    round,
+                    checks,
+                    attachments: []
+                };
 
                 const btn = $("forge");
+                $("frame").classList.add("hidden");
+                $("code").classList.add("hidden");
+                $("empty").classList.remove("hidden");
+                selectTab("preview")
                 btn.disabled = true; btn.classList.add("working");
                 note.textContent = round === 2 ? "Enhancing current app…" : "Forging…";
 
                 try {
-                    const res = await fetch("/generate", {
+                    const res = await fetch("/api-endpoint", {
                         method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body)
                     });
                     if (res.status === 401) { note.className = "note err"; note.textContent = "Invalid secret — check Advanced settings."; return; }
@@ -608,17 +570,16 @@
                         note.className = "note err"; note.textContent = d || ("Server error (" + res.status + ")."); return;
                     }
                     const data = await res.json();
-                    lastHtml = data.html || "";
-                    $("empty").classList.add("hidden");
-                    $("frame").srcdoc = lastHtml;
-                    enterPreviewMode();
-                    $("code").textContent = lastHtml;
-                    selectTab("preview");
-                    note.textContent = data.deploying ? "Done. Deploying to GitHub Pages — live shortly at" : "Done.";
-                    if (data.deploying && data.pages_url) {
-                        const a = document.createElement("a"); a.href = data.pages_url; a.target = "_blank"; a.textContent = data.pages_url;
-                        note.appendChild(a);
-                    }
+                    $("empty").classList.remove("hidden");
+
+                    note.innerHTML = `
+<b>${data.status}</b><br>
+${data.message}<br><br>
+Task: ${data.task}<br>
+Round: ${data.round}<br><br>
+Generation has started in the background.<br>
+Refresh the GitHub Pages site in a minute to view the generated app.
+`;
                 } catch (e) {
                     note.className = "note err"; note.textContent = "Couldn't reach the server. Is it running?";
                 } finally {
@@ -627,7 +588,6 @@
             }
             $("forge").onclick = forge;
             document.addEventListener("keydown", e => { if ((e.metaKey || e.ctrlKey) && e.key === "Enter") forge(); });
-            $("backBuilder").onclick = exitPreviewMode;
         })();
     </script>
 </body>
