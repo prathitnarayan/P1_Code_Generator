@@ -1,4 +1,12 @@
-=======
+---
+title: AI Project Generator
+colorFrom: blue
+colorTo: purple
+sdk: docker
+app_port: 3000
+pinned: false
+---
+
 # AI Project Generator
 
 A FastAPI-based AI application that generates single-page web applications from task briefs.
