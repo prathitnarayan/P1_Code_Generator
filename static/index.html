@@ -424,7 +424,8 @@
             <span class="mark">FORGE<span class="spark">·</span></span>
             <span class="tag">brief in, single-page app out — pushed live to GitHub Pages</span>
         </div>
-        <div class="live">live app · <a href="https://prathitnarayan.github.io/LLM-Pages/" target="_blank" rel="noopener noreferrer">LLM-Pages
+        <div class="live">live app · <a href="https://prathitnarayan.github.io/LLM-Pages/" target="_blank"
+                rel="noopener noreferrer">LLM-Pages
                 ↗</a></div>
     </header>
 
@@ -566,19 +567,38 @@
                     });
                     if (res.status === 401) { note.className = "note err"; note.textContent = "Invalid secret — check Advanced settings."; return; }
                     if (!res.ok) {
-                        let d; try { d = (await res.json()).detail; } catch (e) { }
-                        note.className = "note err"; note.textContent = d || ("Server error (" + res.status + ")."); return;
+                        let d;
+                        try {
+                            d = (await res.json()).detail;
+                        } catch (e) { }
+
+                        note.className = "note err";
+                        note.textContent = d || ("Server error (" + res.status + ").");
+                        return;
                     }
+
                     const data = await res.json();
-                    $("empty").classList.remove("hidden");
+
+                    const frame = document.getElementById("frame");
+                    const empty = document.getElementById("empty");
+
+                    if (data.pages_url) {
+                        frame.src = data.pages_url + "?t=" + Date.now();
+
+                        frame.classList.remove("hidden");
+                        empty.classList.add("hidden");
+
+                        selectTab("preview");
+                    }
 
                     note.innerHTML = `
 <b>${data.status}</b><br>
 ${data.message}<br><br>
 Task: ${data.task}<br>
 Round: ${data.round}<br><br>
-Generation has started in the background.<br>
-Refresh the GitHub Pages site in a minute to view the generated app.
+${data.pages_url
+                            ? `Live App: <a href="${data.pages_url}" target="_blank">${data.pages_url}</a>`
+                            : "Generation has started in the background."}
 `;
                 } catch (e) {
                     note.className = "note err"; note.textContent = "Couldn't reach the server. Is it running?";

@@ -650,7 +650,15 @@ async def process_request(req: ApiRequest):
         if not pages_ok:
             logger.warning("⚠ GitHub Pages verification timed out (may still deploy)")
 
-        logger.info(f"✓ Round {req.round} COMPLETED - live at {repo_info['pages_url']}")
+        return {
+            "status": "Completed",
+            "message": "Application generated successfully.",
+            "task": req.task,
+            "round": req.round,
+            "pages_url": repo_info["pages_url"],
+            "repo_url": repo_info["repo_url"],
+            "commit_sha": repo_info["commit_sha"]
+        }
 
     except asyncio.TimeoutError:
         logger.error(f"✗ TIMEOUT - Processing exceeded time limit")
@@ -690,19 +698,24 @@ async def api_endpoint(req: ApiRequest, background_tasks: BackgroundTasks):
             except asyncio.TimeoutError:
                 logger.error(f"Processing timed out after 10 minutes")
 
-        background_tasks.add_task(process_with_timeout)
+        result = await process_request(req)
 
-        # Return 200 immediately
         return JSONResponse(
             status_code=200,
-            content={
-                "status": "Processing",
-                "message": f"Round {req.round} request processing",
-                "task": req.task,
-                "round": req.round,
-                "timestamp": datetime.now().isoformat()
-            }
-        )
+            content=result
+            )
+
+        # # Return 200 immediately
+        # return JSONResponse(
+        #     status_code=200,
+        #     content={
+        #         "status": "Processing",
+        #         "message": f"Round {req.round} request processing",
+        #         "task": req.task,
+        #         "round": req.round,
+        #         "timestamp": datetime.now().isoformat()
+        #     }
+        # )
 
     except HTTPException:
         raise
