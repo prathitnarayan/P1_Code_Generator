@@ -3,7 +3,7 @@ title: AI Project Generator
 colorFrom: blue
 colorTo: purple
 sdk: docker
-app_port: 3000
+app_port: 7860
 pinned: false
 ---
 
